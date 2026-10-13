@@ -616,3 +616,114 @@ body.monitor .wrap { width: min(1700px, 100% - 40px); }
 .res-loss { background: rgba(239, 68, 68, .15); color: #ef4444; border: 1px solid rgba(239, 68, 68, .35); }
 .res-live { background: #dc2626; color: #fff; box-shadow: 0 0 8px rgba(220, 38, 38, .6); animation: blink-live 1.2s infinite; }
 .res-todo { background: rgba(143, 160, 191, .12); color: var(--muted); border: 1px solid var(--line2); }
+.res-wo { letter-spacing: .03em; }
+
+/* ---------- tombol layar penuh ---------- */
+.head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fs-toggle-btn {
+  background: rgba(56, 189, 248, .12);
+  color: var(--blue);
+  border-color: rgba(56, 189, 248, .35);
+  transition: all .15s ease;
+}
+.fs-toggle-btn:hover {
+  background: rgba(56, 189, 248, .24);
+  color: #fff;
+}
+
+/* ---------- skala font nama peserta (klasemen) ---------- */
+.pname-full {
+  display: block;
+  color: var(--muted);
+  font-size: .80rem;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+}
+.pname-full.pname-sm {
+  font-size: .75rem;
+  letter-spacing: -.01em;
+}
+.pname-full.pname-xs {
+  font-size: .69rem;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+.pname-full.pname-xxs {
+  font-size: .63rem;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+}
+
+/* ---------- fitur walkover (WO) ---------- */
+.badge-wo {
+  display: inline-block;
+  font-size: .62rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.badge-wo.loss {
+  background: rgba(239, 68, 68, .2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, .45);
+}
+.badge-wo.win {
+  background: rgba(34, 197, 94, .2);
+  color: var(--accent);
+  border: 1px solid rgba(34, 197, 94, .45);
+}
+.wo-note {
+  display: block;
+  font-size: .68rem;
+  font-weight: 800;
+  color: var(--warn);
+  letter-spacing: .05em;
+}
+.b-row.wo-loss {
+  opacity: .7;
+}
+.b-row.wo-loss .tname {
+  text-decoration: line-through;
+  text-decoration-color: #ef4444;
+}
+.mline.is-wo {
+  background: rgba(245, 158, 11, .03);
+}
+.chip-wo {
+  border-color: rgba(245, 158, 11, .45);
+  color: #fbbf24;
+}
+.chip-wo:hover {
+  background: rgba(245, 158, 11, .15);
+  color: #fde68a;
+}
+.chip-wo.on {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #1a1003;
+}
+.wo-select {
+  padding: 5px 8px;
+  font-size: .8rem;
+  border-radius: 7px;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--line2);
+  cursor: pointer;
+}
+.wo-select.is-wo {
+  border-color: var(--warn);
+  color: #fbbf24;
+  background: rgba(245, 158, 11, .12);
+}
+

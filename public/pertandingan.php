@@ -5,17 +5,18 @@ require __DIR__ . '/../app/web.php';
 $teams   = teams_all();
 $matches = matches_all();
 
-// Filter: f = all | A..H | KO ; s = all | live | done | todo
+// Filter: f = all | A..H | KO ; s = all | live | done | todo | wo
 $f = (string) ($_GET['f'] ?? 'all');
 $s = (string) ($_GET['s'] ?? 'all');
 if (!in_array($f, array_merge(['all', 'KO'], GROUPS), true)) {
     $f = 'all';
 }
-if (!in_array($s, ['all', 'live', 'done', 'todo'], true)) {
+if (!in_array($s, ['all', 'live', 'done', 'todo', 'wo'], true)) {
     $s = 'all';
 }
 
 $liveCount = (int) db()->query('SELECT COUNT(*) FROM matches WHERE is_live = 1')->fetchColumn();
+$woCount   = (int) db()->query("SELECT COUNT(*) FROM matches WHERE wo_side <> ''")->fetchColumn();
 $sections = [];
 $played = 0;
 foreach ($matches as $m) {
@@ -25,6 +26,7 @@ foreach ($matches as $m) {
     if ($f === 'KO' && $m['stage'] === 'G') continue;
     if ($f !== 'all' && $f !== 'KO' && !($m['stage'] === 'G' && $m['grp'] === $f)) continue;
     if ($s === 'live' && empty($m['is_live'])) continue;
+    if ($s === 'wo' && empty($m['wo_side'])) continue;
     if ($s === 'done' && !$isPlayed) continue;
     if ($s === 'todo' && ($isPlayed || !empty($m['is_live']))) continue;
 
@@ -73,6 +75,9 @@ page_header('Pertandingan', 'pertandingan');
   <a class="chip chip-live <?= $s === 'live' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'live')) ?>">🔴 Sedang main <?= $liveCount > 0 ? "($liveCount)" : '' ?></a>
   <a class="chip <?= $s === 'done' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'done')) ?>">Sudah main</a>
   <a class="chip <?= $s === 'todo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'todo')) ?>">Belum main</a>
+  <?php if ($woCount > 0): ?>
+    <a class="chip chip-wo <?= $s === 'wo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'wo')) ?>">⚠️ Status WO (<?= $woCount ?>)</a>
+  <?php endif; ?>
 </div>
 
 <?php if (!$sections): ?>

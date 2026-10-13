@@ -337,7 +337,7 @@ function import_from_json_string(string $jsonString): array
             $insTeam->execute([$id ?: null, $player, $name, $logo, $grp, $createdAt]);
         }
 
-        $insMatch = $pdo->prepare('INSERT OR REPLACE INTO matches (id, stage, grp, round, slot, home_id, away_id, home_score, away_score, home_pen, away_pen, is_live) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $insMatch = $pdo->prepare('INSERT OR REPLACE INTO matches (id, stage, grp, round, slot, home_id, away_id, home_score, away_score, home_pen, away_pen, is_live, wo_side) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         foreach ($matches as $m) {
             $insMatch->execute([
                 isset($m['id']) ? (int) $m['id'] : null,
@@ -352,6 +352,7 @@ function import_from_json_string(string $jsonString): array
                 isset($m['home_pen']) && $m['home_pen'] !== null ? (int) $m['home_pen'] : null,
                 isset($m['away_pen']) && $m['away_pen'] !== null ? (int) $m['away_pen'] : null,
                 isset($m['is_live']) ? (int) $m['is_live'] : 0,
+                (string) ($m['wo_side'] ?? ''),
             ]);
         }
 

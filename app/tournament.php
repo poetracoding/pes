@@ -76,6 +76,9 @@ function match_winner(array $m): ?int
     if (!match_played($m) || !$m['home_id'] || !$m['away_id']) {
         return null;
     }
+    if (!empty($m['wo_side'])) {
+        return $m['wo_side'] === 'home' ? (int) $m['away_id'] : (int) $m['home_id'];
+    }
     if ($m['home_score'] > $m['away_score']) {
         return (int) $m['home_id'];
     }
@@ -314,7 +317,15 @@ function champion(): ?array
  * Return pesan error, atau null jika berhasil.
  * Skor dikirim sebagai string mentah dari form dan divalidasi di sini.
  */
-function save_match_score(int $id, string $hs, string $as, string $hp = '', string $ap = '', ?int $isLive = null): ?string
+function save_match_score(
+    int $id,
+    string $hs,
+    string $as,
+    string $hp = '',
+    string $ap = '',
+    ?int $isLive = null,
+    string $woSide = ''
+): ?string
 {
     $pdo = db();
     $st  = $pdo->prepare('SELECT * FROM matches WHERE id = ?');
@@ -328,7 +339,19 @@ function save_match_score(int $id, string $hs, string $as, string $hp = '', stri
         return 'Kedua tim pada pertandingan ini belum ditentukan.';
     }
 
+    $woSide = in_array($woSide, ['home', 'away'], true) ? $woSide : '';
+
     [$hs, $as, $hp, $ap] = array_map('trim', [$hs, $as, $hp, $ap]);
+
+    // Jika WO dipilih tapi skor belum diisi, otomatis berikan skor 3-0 / 0-3 standar
+    if ($woSide === 'home' && $hs === '' && $as === '') {
+        $hs = '0';
+        $as = '3';
+    } elseif ($woSide === 'away' && $hs === '' && $as === '') {
+        $hs = '3';
+        $as = '0';
+    }
+
     foreach ([$hs, $as, $hp, $ap] as $v) {
         if ($v !== '' && !preg_match('/^\d{1,2}$/', $v)) {
             return 'Skor harus berupa angka 0–99.';
@@ -337,6 +360,7 @@ function save_match_score(int $id, string $hs, string $as, string $hp = '', stri
 
     if ($hs === '' && $as === '') {
         $vals = [null, null, null, null];                       // hapus hasil
+        $woSide = '';
     } elseif ($hs === '' || $as === '') {
         return 'Isi kedua skor, atau kosongkan keduanya untuk menghapus hasil.';
     } else {
@@ -344,7 +368,8 @@ function save_match_score(int $id, string $hs, string $as, string $hp = '', stri
         $as = (int) $as;
         $pens = [null, null];
 
-        if ($m['stage'] !== 'G' && $hs === $as) {
+        // Knockout seri (bukan WO) wajib penalti
+        if ($m['stage'] !== 'G' && $hs === $as && empty($woSide)) {
             if ($hp === '' || $ap === '') {
                 return 'Babak knockout tidak boleh seri — isi skor adu penalti.';
             }
@@ -363,8 +388,8 @@ function save_match_score(int $id, string $hs, string $as, string $hp = '', stri
         $liveVal = ($vals[0] !== null) ? 0 : (int) ($m['is_live'] ?? 0);
     }
 
-    $pdo->prepare('UPDATE matches SET home_score = ?, away_score = ?, home_pen = ?, away_pen = ?, is_live = ? WHERE id = ?')
-        ->execute([...$vals, $liveVal, $id]);
+    $pdo->prepare('UPDATE matches SET home_score = ?, away_score = ?, home_pen = ?, away_pen = ?, is_live = ?, wo_side = ? WHERE id = ?')
+        ->execute([...$vals, $liveVal, $woSide, $id]);
 
     sync_knockout();
     return null;
@@ -425,7 +450,7 @@ function reset_all(): void
 /** Hapus semua skor (tim dan jadwal tetap). */
 function reset_scores(): void
 {
-    db()->exec('UPDATE matches SET home_score = NULL, away_score = NULL, home_pen = NULL, away_pen = NULL, is_live = 0');
+    db()->exec("UPDATE matches SET home_score = NULL, away_score = NULL, home_pen = NULL, away_pen = NULL, is_live = 0, wo_side = ''");
     sync_knockout();
 }
 

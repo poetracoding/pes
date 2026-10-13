@@ -34,6 +34,7 @@ foreach ($allMatches as $m) {
     $done   = match_played($m);
     $win    = match_winner($m);
     $isLive = !empty($m['is_live']);
+    $isWo   = !empty($m['wo_side']);
 
     $stageTitle = ($m['stage'] === 'G')
         ? 'Grup ' . $m['grp'] . ' · Matchday ' . $m['round']
@@ -43,15 +44,21 @@ foreach ($allMatches as $m) {
         $opp = $aid && isset($allTeams[$aid]) ? $allTeams[$aid] : null;
         $pen = ($m['home_pen'] !== null && $m['away_pen'] !== null) ? ' (' . $m['home_pen'] . '–' . $m['away_pen'] . ' pen)' : '';
         $scoreText = $done
-            ? $m['home_score'] . ' – ' . $m['away_score'] . $pen
+            ? $m['home_score'] . ' – ' . $m['away_score'] . ($isWo ? ' (WO)' : $pen)
             : ($isLive ? (int) $m['home_score'] . ' – ' . (int) $m['away_score'] . ' (LIVE)' : 'vs');
 
         $result = 'todo';
         if ($isLive) $result = 'live';
         elseif ($done) {
-            if ($win === $hid) $result = 'win';
-            elseif ($win === $aid) $result = 'loss';
-            else $result = 'draw';
+            if ($isWo) {
+                $result = ($m['wo_side'] === 'home') ? 'wo_loss' : 'wo_win';
+            } elseif ($win === $hid) {
+                $result = 'win';
+            } elseif ($win === $aid) {
+                $result = 'loss';
+            } else {
+                $result = 'draw';
+            }
         }
 
         $teamHistories[$hid]['matches'][] = [
@@ -64,6 +71,7 @@ foreach ($allMatches as $m) {
             'is_live'    => $isLive,
             'result'     => $result,
             'score_text' => $scoreText,
+            'is_wo'      => $isWo,
         ];
     }
 
@@ -71,15 +79,21 @@ foreach ($allMatches as $m) {
         $opp = $hid && isset($allTeams[$hid]) ? $allTeams[$hid] : null;
         $pen = ($m['home_pen'] !== null && $m['away_pen'] !== null) ? ' (' . $m['away_pen'] . '–' . $m['home_pen'] . ' pen)' : '';
         $scoreText = $done
-            ? $m['away_score'] . ' – ' . $m['home_score'] . $pen
+            ? $m['away_score'] . ' – ' . $m['home_score'] . ($isWo ? ' (WO)' : $pen)
             : ($isLive ? (int) $m['away_score'] . ' – ' . (int) $m['home_score'] . ' (LIVE)' : 'vs');
 
         $result = 'todo';
         if ($isLive) $result = 'live';
         elseif ($done) {
-            if ($win === $aid) $result = 'win';
-            elseif ($win === $hid) $result = 'loss';
-            else $result = 'draw';
+            if ($isWo) {
+                $result = ($m['wo_side'] === 'away') ? 'wo_loss' : 'wo_win';
+            } elseif ($win === $aid) {
+                $result = 'win';
+            } elseif ($win === $hid) {
+                $result = 'loss';
+            } else {
+                $result = 'draw';
+            }
         }
 
         $teamHistories[$aid]['matches'][] = [
@@ -92,6 +106,7 @@ foreach ($allMatches as $m) {
             'is_live'    => $isLive,
             'result'     => $result,
             'score_text' => $scoreText,
+            'is_wo'      => $isWo,
         ];
     }
 }
@@ -194,7 +209,7 @@ page_header('Klasemen', 'klasemen');
                       <span class="badge-live-mini" title="Sedang bertanding"><span class="dot-live"></span>LIVE</span>
                     <?php endif; ?>
                   </b>
-                  <small class="pname-truncated" title="<?= h($r['player']) ?>"><?= h(short_player_name($r['player'])) ?></small>
+                  <small class="pname-full <?= player_font_class($r['player']) ?>" title="<?= h($r['player']) ?>"><?= h($r['player']) ?></small>
                 </div>
               </div>
             </td>
@@ -274,7 +289,9 @@ page_header('Klasemen', 'klasemen');
           badgeClass = 'res-live';
           badgeText = '● LIVE';
         } else if (m.done) {
-          if (m.result === 'win') { badgeClass = 'res-win'; badgeText = 'MENANG'; }
+          if (m.result === 'wo_win') { badgeClass = 'res-win res-wo'; badgeText = 'MENANG (WO)'; }
+          else if (m.result === 'wo_loss') { badgeClass = 'res-loss res-wo'; badgeText = 'KALAH (WO)'; }
+          else if (m.result === 'win') { badgeClass = 'res-win'; badgeText = 'MENANG'; }
           else if (m.result === 'loss') { badgeClass = 'res-loss'; badgeText = 'KALAH'; }
           else { badgeClass = 'res-draw'; badgeText = 'SERI'; }
         }

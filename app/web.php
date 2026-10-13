@@ -180,15 +180,40 @@ function page_header(string $title, string $active = ''): void
 
 function page_footer(): void
 {
-    echo '</main><footer class="wrap foot muted small">' . h(APP_NAME) . '</footer></body></html>';
+    echo '</main><footer class="wrap foot muted small">' . h(APP_NAME) . '</footer>';
+    echo '<script>
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(()=>{});
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen().catch(()=>{});
+      }
+    }
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "f" || e.key === "F") {
+        const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toUpperCase() : "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        toggleFullScreen();
+      }
+    });
+    document.addEventListener("fullscreenchange", function() {
+      const isFs = !!document.fullscreenElement;
+      document.querySelectorAll(".fs-toggle-btn").forEach(b => {
+        b.innerHTML = isFs ? "✕ Keluar Layar Penuh" : "⛶ Layar Penuh";
+      });
+    });
+    </script></body></html>';
 }
 
-/** Tombol "mode layar" (auto-refresh) untuk halaman publik. */
+/** Tombol "mode layar" dan "layar penuh" untuk halaman publik. */
 function monitor_link(): string
 {
     $qs = $_GET;
     $qs['monitor'] = 1;
-    return '<a class="btn ghost small" href="?' . h(http_build_query($qs)) . '">Mode layar</a>';
+    return '<div class="head-actions">'
+        . '<a class="btn ghost small" href="?' . h(http_build_query($qs)) . '">Mode layar</a>'
+        . '<button type="button" class="btn ghost small fs-toggle-btn" onclick="toggleFullScreen()" title="Layar Penuh (Shortcut: F)">⛶ Layar Penuh</button>'
+        . '</div>';
 }
 
 /* ---------------------------------------------------- komponen tampilan */
@@ -230,6 +255,15 @@ function pen_note(array $m): string
     return 'Penalti ' . (int) $m['home_pen'] . '–' . (int) $m['away_pen'];
 }
 
+function player_font_class(?string $name): string
+{
+    $len = mb_strlen(trim((string) $name));
+    if ($len > 24) return 'pname-xxs';
+    if ($len > 18) return 'pname-xs';
+    if ($len > 13) return 'pname-sm';
+    return '';
+}
+
 /**
  * Batasi nama peserta maksimal 2 kata (+ kode singkat jika ada), selebihnya titik tiga (...).
  * Contoh: "REINHARND GUNAWAN K3 HP" -> "REINHARND GUNAWAN K3..."
@@ -263,20 +297,33 @@ function match_line(array $m, array $teams): string
     $done   = match_played($m);
     $win    = match_winner($m);
     $isLive = !empty($m['is_live']);
+    $isWo   = !empty($m['wo_side']);
 
-    $homeName = $home ? h($home['name']) : '<em class="tbd">' . h(slot_label($m, 'home')) . '</em>';
-    $awayName = $away ? h($away['name']) : '<em class="tbd">' . h(slot_label($m, 'away')) . '</em>';
+    $homeWoTag = '';
+    $awayWoTag = '';
+    if ($isWo) {
+        if ($m['wo_side'] === 'home') {
+            $homeWoTag = ' <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>';
+            $awayWoTag = ' <span class="badge-wo win" title="Menang WO">Menang WO</span>';
+        } else {
+            $homeWoTag = ' <span class="badge-wo win" title="Menang WO">Menang WO</span>';
+            $awayWoTag = ' <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>';
+        }
+    }
+
+    $homeName = $home ? h($home['name']) . $homeWoTag : '<em class="tbd">' . h(slot_label($m, 'home')) . '</em>';
+    $awayName = $away ? h($away['name']) . $awayWoTag : '<em class="tbd">' . h(slot_label($m, 'away')) . '</em>';
     $homeSub  = $home ? '<small>' . h($home['player']) . '</small>' : '';
     $awaySub  = $away ? '<small>' . h($away['player']) . '</small>' : '';
 
     $score = $done
-        ? '<b>' . (int) $m['home_score'] . '</b><i>–</i><b>' . (int) $m['away_score'] . '</b>'
+        ? '<b>' . (int) $m['home_score'] . '</b><i>–</i><b>' . (int) $m['away_score'] . '</b>' . ($isWo ? '<small class="wo-note">WO</small>' : '')
         : '<span class="vs">vs</span>';
 
     $pen = pen_note($m);
     $liveBadge = $isLive ? '<span class="badge-live mline-live"><span class="dot-live"></span>LIVE</span>' : '';
 
-    return '<div class="mline ' . ($done ? 'done' : 'todo') . ($isLive ? ' live' : '') . '">'
+    return '<div class="mline ' . ($done ? 'done' : 'todo') . ($isLive ? ' live' : '') . ($isWo ? ' is-wo' : '') . '">'
         . '<div class="side home' . ($win && $home && $win === (int) $home['id'] ? ' win' : '') . '"><span class="nm">' . $homeName . $homeSub . '</span>' . logo_html($home) . '</div>'
         . '<div class="sc">' . $liveBadge . $score . ($pen ? '<small>' . h($pen) . '</small>' : '') . '</div>'
         . '<div class="side away' . ($win && $away && $win === (int) $away['id'] ? ' win' : '') . '">' . logo_html($away) . '<span class="nm">' . $awayName . $awaySub . '</span></div>'
@@ -289,7 +336,8 @@ function bracket_card(array $m, array $teams): string
     $win    = match_winner($m);
     $done   = match_played($m);
     $isLive = !empty($m['is_live']);
-    $out    = '<div class="b-card' . ($done ? ' done' : '') . ($isLive ? ' live' : '') . '">';
+    $isWo   = !empty($m['wo_side']);
+    $out    = '<div class="b-card' . ($done ? ' done' : '') . ($isLive ? ' live' : '') . ($isWo ? ' is-wo' : '') . '">';
 
     if ($isLive) {
         $out .= '<div class="b-live-bar"><span class="dot-live"></span>SEDANG BERTANDING</div>';
@@ -298,11 +346,21 @@ function bracket_card(array $m, array $teams): string
     foreach (['home', 'away'] as $side) {
         $team = $teams[(int) $m[$side . '_id']] ?? null;
         $isWin = $team && $win === (int) $team['id'];
-        $out .= '<div class="b-row' . ($isWin ? ' win' : '') . '">';
+        $isWoLoss = $isWo && $m['wo_side'] === $side;
+        $isWoWin  = $isWo && $m['wo_side'] !== $side;
+
+        $woTag = '';
+        if ($isWoLoss) {
+            $woTag = ' <span class="badge-wo loss">Kalah WO</span>';
+        } elseif ($isWoWin) {
+            $woTag = ' <span class="badge-wo win">Menang WO</span>';
+        }
+
+        $out .= '<div class="b-row' . ($isWin ? ' win' : '') . ($isWoLoss ? ' wo-loss' : '') . '">';
         $out .= logo_html($team, 'logo sm');
         if ($team) {
             $out .= '<div class="b-name" title="' . h($team['name'] . ' (' . $team['player'] . ')') . '">'
-                 . '<b class="tname">' . h($team['name']) . '</b>'
+                 . '<b class="tname">' . h($team['name']) . $woTag . '</b>'
                  . '<small class="pname">' . h($team['player']) . '</small>'
                  . '</div>';
         } else {
@@ -312,7 +370,8 @@ function bracket_card(array $m, array $teams): string
         }
         if ($done) {
             $pen = $m[$side . '_pen'];
-            $out .= '<span class="b-score">' . (int) $m[$side . '_score'] . ($pen !== null ? '<sup>(' . (int) $pen . ')</sup>' : '') . '</span>';
+            $sup = ($isWo ? '<sup>(WO)</sup>' : ($pen !== null ? '<sup>(' . (int) $pen . ')</sup>' : ''));
+            $out .= '<span class="b-score">' . (int) $m[$side . '_score'] . $sup . '</span>';
         }
         $out .= '</div>';
     }
