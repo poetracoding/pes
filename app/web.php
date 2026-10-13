@@ -268,9 +268,16 @@ function bracket_card(array $m, array $teams): string
         $isWin = $team && $win === (int) $team['id'];
         $out .= '<div class="b-row' . ($isWin ? ' win' : '') . '">';
         $out .= logo_html($team, 'logo sm');
-        $out .= $team
-            ? '<span class="b-name" title="' . h($team['name'] . ' (' . $team['player'] . ')') . '">' . h($team['name']) . ' <small class="muted" style="font-size:0.75rem;font-weight:400">(' . h($team['player']) . ')</small></span>'
-            : '<span class="b-name tbd">' . h(slot_label($m, $side)) . '</span>';
+        if ($team) {
+            $out .= '<div class="b-name" title="' . h($team['name'] . ' (' . $team['player'] . ')') . '">'
+                 . '<b class="tname">' . h($team['name']) . '</b>'
+                 . '<small class="pname">' . h($team['player']) . '</small>'
+                 . '</div>';
+        } else {
+            $out .= '<div class="b-name tbd">'
+                 . '<span class="tname">' . h(slot_label($m, $side)) . '</span>'
+                 . '</div>';
+        }
         if ($done) {
             $pen = $m[$side . '_pen'];
             $out .= '<span class="b-score">' . (int) $m[$side . '_score'] . ($pen !== null ? '<sup>(' . (int) $pen . ')</sup>' : '') . '</span>';
