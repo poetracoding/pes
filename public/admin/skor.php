@@ -22,31 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $isLive = isset($_POST['is_live']) ? (int) $_POST['is_live'] : null;
-    $woInput = (string) ($_POST['wo'] ?? '');
-    $hs = (string) ($_POST['hs'] ?? '');
-    $as = (string) ($_POST['as'] ?? '');
-
-    $woSide = '';
-    if ($woInput === 'home' || $woInput === 'away') {
-        $woSide = $woInput;
-    } elseif (!empty($_POST['wo'])) {
-        if (trim($hs) === '' && trim($as) === '') {
-            $hs = '3';
-            $as = '0';
-            $woSide = 'away';
-        } elseif ((int)$hs > (int)$as) {
-            $woSide = 'away';
-        } elseif ((int)$as > (int)$hs) {
-            $woSide = 'home';
-        } else {
-            $woSide = 'away';
-        }
-    }
-
+    $woSide = (string) ($_POST['wo'] ?? '');
     $err = save_match_score(
         $id,
-        $hs,
-        $as,
+        (string) ($_POST['hs'] ?? ''),
+        (string) ($_POST['as'] ?? ''),
         (string) ($_POST['hp'] ?? ''),
         (string) ($_POST['ap'] ?? ''),
         $isLive,
@@ -84,7 +64,7 @@ page_header('Input Skor', 'admin-skor');
 <div class="filters">
   <a class="chip chip-live <?= $f === 'live' ? 'on' : '' ?>" href="?f=live">🔴 Sedang Main (<?= $liveTotal ?>)</a>
   <?php if ($woTotal > 0): ?>
-    <a class="chip chip-wo <?= $f === 'wo' ? 'on' : '' ?>" href="?f=wo">⚠️ WO (<?= $woTotal ?>)</a>
+    <a class="chip chip-wo <?= $f === 'wo' ? 'on' : '' ?>" href="?f=wo">⚠️ Status WO (<?= $woTotal ?>)</a>
   <?php endif; ?>
   <?php foreach (GROUPS as $g): ?>
     <a class="chip <?= $f === $g ? 'on' : '' ?>" href="?f=<?= $g ?>">Grup <?= $g ?></a>
@@ -124,7 +104,9 @@ page_header('Input Skor', 'admin-skor');
           <span>
             <?= $home ? h($home['name']) . '<small class="muted" style="display:block;font-size:.78rem;font-weight:400">' . h($home['player']) . '</small>' : '<em class="tbd">' . h(slot_label($m, 'home')) . '</em>' ?>
             <?php if ($woSide === 'home'): ?>
-              <span class="badge-wo" title="WO">WO</span>
+              <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>
+            <?php elseif ($woSide === 'away'): ?>
+              <span class="badge-wo win" title="Menang WO">Menang WO</span>
             <?php endif; ?>
           </span>
           <?= logo_html($home, 'logo sm') ?>
@@ -132,17 +114,18 @@ page_header('Input Skor', 'admin-skor');
 
         <div class="inputs-wrap">
           <div class="inputs">
-            <input type="number" name="hs" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($home ? $home['name'] . ' (' . $home['player'] . ')' : '') ?>"
+            <input type="number" name="hs" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($home ? $home['name'] . ' (' . $home['player'] . ')' : 'tuan rumah') ?>"
                    value="<?= $played ? (int) $m['home_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
             <span class="muted">–</span>
-            <input type="number" name="as" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($away ? $away['name'] . ' (' . $away['player'] . ')' : '') ?>"
+            <input type="number" name="as" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($away ? $away['name'] . ' (' . $away['player'] . ')' : 'tamu') ?>"
                    value="<?= $played ? (int) $m['away_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
           </div>
           <?php if ($ready): ?>
-            <label class="wo-check <?= $woSide ? 'active' : '' ?>" title="Centang jika pertandingan berakhir WO">
-              <input type="checkbox" name="wo" value="1" <?= $woSide ? 'checked' : '' ?> onchange="toggleWo(this)">
-              <span>WO</span>
-            </label>
+            <select name="wo" class="wo-select <?= $woSide ? 'is-wo' : '' ?>" <?= $ready ? '' : 'disabled' ?> title="Status WO">
+              <option value="" <?= $woSide === '' ? 'selected' : '' ?>>Normal</option>
+              <option value="home" <?= $woSide === 'home' ? 'selected' : '' ?>>Home Kalah WO (0-3)</option>
+              <option value="away" <?= $woSide === 'away' ? 'selected' : '' ?>>Away Kalah WO (3-0)</option>
+            </select>
           <?php endif; ?>
           <?php if ($isLive): ?>
             <div class="live-pill-inline"><span class="badge-live"><span class="dot-live"></span>LIVE</span></div>
@@ -154,7 +137,9 @@ page_header('Input Skor', 'admin-skor');
           <span>
             <?= $away ? h($away['name']) . '<small class="muted" style="display:block;font-size:.78rem;font-weight:400">' . h($away['player']) . '</small>' : '<em class="tbd">' . h(slot_label($m, 'away')) . '</em>' ?>
             <?php if ($woSide === 'away'): ?>
-              <span class="badge-wo" title="WO">WO</span>
+              <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>
+            <?php elseif ($woSide === 'home'): ?>
+              <span class="badge-wo win" title="Menang WO">Menang WO</span>
             <?php endif; ?>
           </span>
         </div>
@@ -180,18 +165,4 @@ page_header('Input Skor', 'admin-skor');
     <?php endforeach; ?>
   </section>
 <?php endforeach; ?>
-<script>
-function toggleWo(cb) {
-  const form = cb.closest('form');
-  form.classList.toggle('is-wo', cb.checked);
-  const hs = form.querySelector('input[name="hs"]');
-  const as = form.querySelector('input[name="as"]');
-  if (cb.checked) {
-    if (!hs.value && !as.value) {
-      hs.value = '3';
-      as.value = '0';
-    }
-  }
-}
-</script>
 <?php page_footer();
