@@ -156,21 +156,21 @@ input[type=file] { padding: 7px; }
 .tbd { color: var(--muted); font-style: italic; font-weight: 400; }
 
 /* ---------- bagan ---------- */
-body.page-bagan .wrap { width: min(1860px, calc(100% - 24px)); }
-body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
-.bracket-wrap { overflow-x: auto; padding-bottom: 24px; -webkit-overflow-scrolling: touch; }
-.bracket-wrap::-webkit-scrollbar { height: 10px; }
+body.page-bagan .wrap { width: min(1480px, calc(100% - 24px)); }
+body.monitor .wrap { width: min(1860px, calc(100% - 24px)); }
+.bracket-wrap { overflow-x: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
+.bracket-wrap::-webkit-scrollbar { height: 8px; }
 .bracket-wrap::-webkit-scrollbar-track { background: var(--panel); border-radius: 6px; }
 .bracket-wrap::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 6px; }
 .bracket-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 .bracket {
-  --H: 900px;
-  --card-w: 370px;
-  --gap: 65px;
+  --H: 740px;
+  --card-w: 260px;
+  --gap: 40px;
   display: flex;
   min-width: max-content;
-  padding: 10px 4px 24px;
+  padding: 8px 4px 18px;
 }
 .b-col {
   width: calc(var(--card-w) + var(--gap));
@@ -185,11 +185,11 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
 .b-col h3 {
   text-align: center;
   color: var(--muted);
-  font-size: .88rem;
+  font-size: .82rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: .08em;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .b-body { height: var(--H); display: flex; flex-direction: column; }
 .b-pair { flex: 1; display: flex; flex-direction: column; position: relative; }
@@ -198,14 +198,14 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
   width: 100%;
   background: var(--panel);
   border: 1px solid var(--line2);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .32);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .28);
   transition: border-color .15s ease, transform .15s ease;
 }
 .b-card:hover { border-color: #5d7fa8; }
 .b-card.done { border-color: var(--line2); }
-.b-row { display: flex; align-items: center; gap: 12px; padding: 7px 14px; min-height: 48px; }
+.b-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; min-height: 38px; }
 .b-row + .b-row { border-top: 1px solid var(--line); }
 .b-row.win { background: var(--accent-dim); }
 .b-row.win .tname { color: var(--accent); }
@@ -215,10 +215,10 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  line-height: 1.28;
+  line-height: 1.22;
 }
 .b-name .tname {
-  font-size: .95rem;
+  font-size: .86rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -227,7 +227,7 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
   color: var(--text);
 }
 .b-name .pname {
-  font-size: .8rem;
+  font-size: .72rem;
   font-weight: 400;
   color: var(--muted);
   white-space: nowrap;
@@ -236,13 +236,13 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
   margin-top: 1px;
 }
 .b-name.tbd .tname {
-  font-size: .86rem;
+  font-size: .8rem;
   font-weight: 400;
   font-style: italic;
   color: var(--muted);
 }
-.b-score { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; padding-left: 8px; }
-.b-score sup { font-size: .68rem; color: var(--warn); font-weight: 600; margin-left: 2px; }
+.b-score { font-weight: 800; font-size: 1rem; font-variant-numeric: tabular-nums; padding-left: 6px; }
+.b-score sup { font-size: .62rem; color: var(--warn); font-weight: 600; margin-left: 2px; }
 
 .b-col:not(:last-child) .b-slot::after {
   content: "";
@@ -271,24 +271,24 @@ body.monitor .wrap { width: min(1920px, calc(100% - 24px)); }
 
 /* Mode layar untuk bagan */
 body.monitor .bracket {
-  --H: 960px;
-  --card-w: 400px;
-  --gap: 75px;
-  padding: 14px 8px 28px;
+  --H: 880px;
+  --card-w: 320px;
+  --gap: 55px;
+  padding: 12px 6px 24px;
 }
 body.monitor .b-row {
-  min-height: 52px;
-  padding: 8px 16px;
-  gap: 14px;
+  min-height: 46px;
+  padding: 6px 12px;
+  gap: 10px;
 }
 body.monitor .b-name .tname {
-  font-size: 1.05rem;
+  font-size: .98rem;
 }
 body.monitor .b-name .pname {
-  font-size: .88rem;
+  font-size: .8rem;
 }
 body.monitor .b-score {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 /* ---------- admin ---------- */
