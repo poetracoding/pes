@@ -11,6 +11,91 @@ $liveTeamMap   = array_flip(array_map('intval', array_filter($liveTeamIds)));
 $liveGroupList = db()->query("SELECT DISTINCT grp FROM matches WHERE is_live = 1 AND stage = 'G'")->fetchAll(PDO::FETCH_COLUMN);
 $liveGroupMap  = array_flip(array_filter($liveGroupList));
 
+// Siapkan data riwayat pertandingan untuk semua tim (dibuka saat nama peserta diklik)
+$allMatches    = matches_all();
+$allTeams      = teams_all();
+$teamHistories = [];
+
+foreach ($allTeams as $tid => $t) {
+    $teamHistories[$tid] = [
+        'id'        => (int) $t['id'],
+        'name'      => (string) $t['name'],
+        'player'    => (string) $t['player'],
+        'grp'       => (string) $t['grp'],
+        'logo_html' => logo_html($t, 'logo lg'),
+        'stats'     => null,
+        'matches'   => [],
+    ];
+}
+
+foreach ($allMatches as $m) {
+    $hid    = (int) $m['home_id'];
+    $aid    = (int) $m['away_id'];
+    $done   = match_played($m);
+    $win    = match_winner($m);
+    $isLive = !empty($m['is_live']);
+
+    $stageTitle = ($m['stage'] === 'G')
+        ? 'Grup ' . $m['grp'] . ' · Matchday ' . $m['round']
+        : (STAGE_LABEL[$m['stage']] ?? $m['stage']);
+
+    if ($hid && isset($teamHistories[$hid])) {
+        $opp = $aid && isset($allTeams[$aid]) ? $allTeams[$aid] : null;
+        $pen = ($m['home_pen'] !== null && $m['away_pen'] !== null) ? ' (' . $m['home_pen'] . '–' . $m['away_pen'] . ' pen)' : '';
+        $scoreText = $done
+            ? $m['home_score'] . ' – ' . $m['away_score'] . $pen
+            : ($isLive ? (int) $m['home_score'] . ' – ' . (int) $m['away_score'] . ' (LIVE)' : 'vs');
+
+        $result = 'todo';
+        if ($isLive) $result = 'live';
+        elseif ($done) {
+            if ($win === $hid) $result = 'win';
+            elseif ($win === $aid) $result = 'loss';
+            else $result = 'draw';
+        }
+
+        $teamHistories[$hid]['matches'][] = [
+            'stage'      => $stageTitle,
+            'side'       => 'home',
+            'opp_name'   => $opp ? $opp['name'] : slot_label($m, 'away'),
+            'opp_player' => $opp ? $opp['player'] : '',
+            'opp_logo'   => logo_html($opp, 'logo sm'),
+            'done'       => $done,
+            'is_live'    => $isLive,
+            'result'     => $result,
+            'score_text' => $scoreText,
+        ];
+    }
+
+    if ($aid && isset($teamHistories[$aid])) {
+        $opp = $hid && isset($allTeams[$hid]) ? $allTeams[$hid] : null;
+        $pen = ($m['home_pen'] !== null && $m['away_pen'] !== null) ? ' (' . $m['away_pen'] . '–' . $m['home_pen'] . ' pen)' : '';
+        $scoreText = $done
+            ? $m['away_score'] . ' – ' . $m['home_score'] . $pen
+            : ($isLive ? (int) $m['away_score'] . ' – ' . (int) $m['home_score'] . ' (LIVE)' : 'vs');
+
+        $result = 'todo';
+        if ($isLive) $result = 'live';
+        elseif ($done) {
+            if ($win === $aid) $result = 'win';
+            elseif ($win === $hid) $result = 'loss';
+            else $result = 'draw';
+        }
+
+        $teamHistories[$aid]['matches'][] = [
+            'stage'      => $stageTitle,
+            'side'       => 'away',
+            'opp_name'   => $opp ? $opp['name'] : slot_label($m, 'home'),
+            'opp_player' => $opp ? $opp['player'] : '',
+            'opp_logo'   => logo_html($opp, 'logo sm'),
+            'done'       => $done,
+            'is_live'    => $isLive,
+            'result'     => $result,
+            'score_text' => $scoreText,
+        ];
+    }
+}
+
 page_header('Klasemen', 'klasemen');
 ?>
 <div class="head-row">
@@ -55,7 +140,7 @@ page_header('Klasemen', 'klasemen');
   <div class="legend small muted">
     <span><span class="dot"></span>Zona lolos (2 teratas)</span>
     <span><span class="dot-live" style="margin-right:4px"></span>Sedang bertanding</span>
-    <span>Main · M = Menang · S = Seri · K = Kalah · GM/GK = Gol Memasukkan/Kemasukan · SG = Selisih Gol</span>
+    <span class="muted" style="margin-left:auto"><small>💡 Klik nama peserta untuk melihat riwayat pertandingan</small></span>
   </div>
 
   <div class="grid g2">
@@ -84,11 +169,24 @@ page_header('Klasemen', 'klasemen');
         <tbody>
         <?php foreach ($table as $i => $r):
             $isTeamLive = isset($liveTeamMap[(int) $r['id']]);
+            if (isset($teamHistories[(int) $r['id']])) {
+                $teamHistories[(int) $r['id']]['stats'] = [
+                    'p'   => $r['p'],
+                    'w'   => $r['w'],
+                    'd'   => $r['d'],
+                    'l'   => $r['l'],
+                    'gf'  => $r['gf'],
+                    'ga'  => $r['ga'],
+                    'gd'  => $r['gd'] > 0 ? '+' . $r['gd'] : (string) $r['gd'],
+                    'pts' => $r['pts'],
+                ];
+            }
         ?>
           <tr class="<?= ($i < 2 ? 'q ' : '') . ($isTeamLive ? 'live ' : '') ?>">
             <td class="pos"><?= $i + 1 ?></td>
             <td class="l">
-              <div class="tm"><?= logo_html($r) ?>
+              <div class="tm team-clickable" onclick="openTeamModal(<?= (int) $r['id'] ?>)" title="Klik untuk melihat riwayat pertandingan <?= h($r['player']) ?>">
+                <?= logo_html($r) ?>
                 <div class="t">
                   <b>
                     <?= h($r['name']) ?>
@@ -96,7 +194,7 @@ page_header('Klasemen', 'klasemen');
                       <span class="badge-live-mini" title="Sedang bertanding"><span class="dot-live"></span>LIVE</span>
                     <?php endif; ?>
                   </b>
-                  <small><?= h($r['player']) ?></small>
+                  <small class="pname-truncated" title="<?= h($r['player']) ?>"><?= h(short_player_name($r['player'])) ?></small>
                 </div>
               </div>
             </td>
@@ -115,5 +213,108 @@ page_header('Klasemen', 'klasemen');
     </section>
   <?php endforeach; ?>
   </div>
+
+  <!-- Modal Riwayat Pertandingan Peserta -->
+  <div id="teamModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this)closeTeamModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-team-brand">
+          <div id="modalLogo"></div>
+          <div>
+            <h2 id="modalTeamName"></h2>
+            <div id="modalPlayerName" class="modal-player"></div>
+            <span id="modalGroupBadge" class="badge"></span>
+          </div>
+        </div>
+        <button type="button" class="btn ghost small close-btn" onclick="closeTeamModal()" aria-label="Tutup">✕</button>
+      </div>
+
+      <div class="modal-stats" id="modalStats"></div>
+
+      <div class="modal-section-title">Riwayat Pertandingan</div>
+      <div class="modal-match-list" id="modalMatchList"></div>
+    </div>
+  </div>
+
+  <script>
+  const TEAM_DATA = <?= json_encode($teamHistories, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+  function openTeamModal(teamId) {
+    const t = TEAM_DATA[teamId];
+    if (!t) return;
+
+    document.getElementById('modalLogo').innerHTML = t.logo_html;
+    document.getElementById('modalTeamName').textContent = t.name;
+    document.getElementById('modalPlayerName').textContent = t.player;
+    document.getElementById('modalGroupBadge').textContent = 'Grup ' + t.grp;
+
+    // Stats
+    let statsHtml = '';
+    if (t.stats) {
+      statsHtml = `
+        <div class="mstat"><b>${t.stats.p}</b><span>Main</span></div>
+        <div class="mstat"><b>${t.stats.w}</b><span>Menang</span></div>
+        <div class="mstat"><b>${t.stats.d}</b><span>Seri</span></div>
+        <div class="mstat"><b>${t.stats.l}</b><span>Kalah</span></div>
+        <div class="mstat"><b>${t.stats.gf}-${t.stats.ga}</b><span>Gol</span></div>
+        <div class="mstat"><b>${t.stats.pts}</b><span>Poin</span></div>
+      `;
+    }
+    document.getElementById('modalStats').innerHTML = statsHtml;
+
+    // Matches
+    let listHtml = '';
+    if (!t.matches || t.matches.length === 0) {
+      listHtml = '<div class="muted small" style="text-align:center;padding:20px;">Belum ada jadwal pertandingan.</div>';
+    } else {
+      t.matches.forEach(m => {
+        let badgeClass = 'res-todo';
+        let badgeText = 'Belum Main';
+        if (m.is_live) {
+          badgeClass = 'res-live';
+          badgeText = '● LIVE';
+        } else if (m.done) {
+          if (m.result === 'win') { badgeClass = 'res-win'; badgeText = 'MENANG'; }
+          else if (m.result === 'loss') { badgeClass = 'res-loss'; badgeText = 'KALAH'; }
+          else { badgeClass = 'res-draw'; badgeText = 'SERI'; }
+        }
+
+        listHtml += `
+          <div class="hist-row ${m.is_live ? 'is-live' : ''}">
+            <div class="hist-stage">${m.stage}</div>
+            <div class="hist-match">
+              <div class="hist-opp">
+                ${m.opp_logo}
+                <div>
+                  <b>vs ${m.opp_name}</b>
+                  ${m.opp_player ? `<small class="muted" style="display:block;font-size:0.78rem;">${m.opp_player}</small>` : ''}
+                </div>
+              </div>
+              <div class="hist-result">
+                <span class="hist-score">${m.score_text}</span>
+                <span class="hist-badge ${badgeClass}">${badgeText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('modalMatchList').innerHTML = listHtml;
+
+    const modal = document.getElementById('teamModal');
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeTeamModal() {
+    const modal = document.getElementById('teamModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeTeamModal();
+  });
+  </script>
 <?php endif; ?>
 <?php page_footer();

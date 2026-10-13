@@ -125,7 +125,7 @@ function page_header(string $title, string $active = ''): void
     echo '<!doctype html><html lang="id"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
     if ($monitor) {
-        echo '<meta http-equiv="refresh" content="30">';
+        echo '<meta http-equiv="refresh" content="10">';
     }
     echo '<title>' . h($title) . ' · ' . h(APP_NAME) . '</title>';
     echo '<link rel="stylesheet" href="' . h($css) . '"></head>';
@@ -139,7 +139,7 @@ function page_header(string $title, string $active = ''): void
         $qs   = $_GET;
         unset($qs['monitor']);
         $exit = $self . ($qs ? '?' . http_build_query($qs) : '');
-        echo '<span class="muted small">Auto-refresh tiap 30 detik</span>';
+        echo '<span class="muted small">Auto-refresh tiap 10 detik</span>';
         echo '<a class="btn ghost small" href="' . h($exit) . '">Keluar mode layar</a>';
     } else {
         echo '<nav>';
@@ -228,6 +228,31 @@ function pen_note(array $m): string
         return '';
     }
     return 'Penalti ' . (int) $m['home_pen'] . '–' . (int) $m['away_pen'];
+}
+
+/**
+ * Batasi nama peserta maksimal 2 kata (+ kode singkat jika ada), selebihnya titik tiga (...).
+ * Contoh: "REINHARND GUNAWAN K3 HP" -> "REINHARND GUNAWAN K3..."
+ *         "ARFIAN EFENDI SARAGIH"   -> "ARFIAN EFENDI..."
+ *         "JUSUP MANALU"           -> "JUSUP MANALU"
+ */
+function short_player_name(?string $name): string
+{
+    $name = trim((string) $name);
+    if ($name === '') {
+        return '';
+    }
+    $parts = preg_split('/\s+/', $name);
+    if (!$parts || count($parts) <= 2) {
+        return $name;
+    }
+
+    // Jika kata ke-3 adalah kode unit/divisi singkat (<= 2 karakter, misal "K3", "HP", "IT") dan masih ada kata berikutnya
+    if (count($parts) >= 3 && mb_strlen($parts[2]) <= 2 && count($parts) > 3) {
+        return $parts[0] . ' ' . $parts[1] . ' ' . $parts[2] . '...';
+    }
+
+    return $parts[0] . ' ' . $parts[1] . '...';
 }
 
 /** Satu baris pertandingan (halaman monitor pertandingan). */

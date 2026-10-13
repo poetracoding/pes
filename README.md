@@ -27,7 +27,7 @@ Saat pertama dibuka, klik **Login Admin** — aplikasi akan meminta Anda membuat
 2. **Admin → Input Skor**: masukkan skor tiap laga. Kosongkan kedua skor untuk menghapus hasil.
 3. **Admin → Ekspor / Impor**: amankan data dengan mengunduh cadangan lengkap (.zip berisi database dan logo), JSON, atau SQLite. Bisa diimpor kembali kapan saja jika ingin memulihkan atau memindahkan turnamen ke komputer lain.
 4. Halaman publik: **Klasemen** (monitor posisi), **Pertandingan** (monitor laga, ada filter grup/status),
-   **Bagan** (skema knockout). Tombol **Mode layar** = tampilan besar yang refresh otomatis tiap 30 detik (cocok untuk TV/proyektor).
+   **Bagan** (skema knockout). Tombol **Mode layar** = tampilan besar yang refresh otomatis tiap 10 detik (cocok untuk TV/proyektor).
 
 ## Aturan
 - Menang 3 poin, seri 1, kalah 0.
