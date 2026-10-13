@@ -671,16 +671,9 @@ body.monitor .wrap { width: min(1700px, 100% - 40px); }
   letter-spacing: .04em;
   vertical-align: middle;
   line-height: 1.2;
-}
-.badge-wo.loss {
   background: rgba(239, 68, 68, .2);
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, .45);
-}
-.badge-wo.win {
-  background: rgba(34, 197, 94, .2);
-  color: var(--accent);
-  border: 1px solid rgba(34, 197, 94, .45);
 }
 .wo-note {
   display: block;
@@ -712,18 +705,35 @@ body.monitor .wrap { width: min(1700px, 100% - 40px); }
   border-color: var(--warn);
   color: #1a1003;
 }
-.wo-select {
-  padding: 5px 8px;
-  font-size: .8rem;
-  border-radius: 7px;
-  background: var(--panel2);
-  color: var(--text);
-  border: 1px solid var(--line2);
+.wo-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line2);
+  background: var(--panel2);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--muted);
+  user-select: none;
+  transition: all .15s ease;
 }
-.wo-select.is-wo {
+.wo-check:hover {
   border-color: var(--warn);
+  color: var(--text);
+}
+.wo-check input {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--warn);
+  width: 14px;
+  height: 14px;
+}
+.wo-check.active, .wo-check:has(input:checked) {
+  border-color: var(--warn);
+  background: rgba(245, 158, 11, .15);
   color: #fbbf24;
-  background: rgba(245, 158, 11, .12);
 }
 

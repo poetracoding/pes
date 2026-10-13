@@ -125,7 +125,7 @@ function page_header(string $title, string $active = ''): void
     echo '<!doctype html><html lang="id"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
     if ($monitor) {
-        echo '<meta http-equiv="refresh" content="10">';
+        echo '<noscript><meta http-equiv="refresh" content="10"></noscript>';
     }
     echo '<title>' . h($title) . ' · ' . h(APP_NAME) . '</title>';
     echo '<link rel="stylesheet" href="' . h($css) . '"></head>';
@@ -202,6 +202,40 @@ function page_footer(): void
         b.innerHTML = isFs ? "✕ Keluar Layar Penuh" : "⛶ Layar Penuh";
       });
     });
+
+    // Auto-refresh halus di latar belakang tanpa reload halaman (Fullscreen tetap bertahan)
+    setInterval(function() {
+      const isMonitor = document.body.classList.contains("monitor");
+      const isFs = !!document.fullscreenElement;
+      if (!isMonitor && !isFs) return;
+
+      const modal = document.getElementById("teamModal");
+      if (modal && modal.style.display !== "none") return;
+
+      fetch(window.location.href, { cache: "no-store" })
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newMain = doc.querySelector("main");
+          const curMain = document.querySelector("main");
+          if (newMain && curMain) {
+            curMain.innerHTML = newMain.innerHTML;
+          }
+          document.title = doc.title;
+          const currFs = !!document.fullscreenElement;
+          document.querySelectorAll(".fs-toggle-btn").forEach(b => {
+            b.innerHTML = currFs ? "✕ Keluar Layar Penuh" : "⛶ Layar Penuh";
+          });
+          const matchData = html.match(/const TEAM_DATA = (\{[\s\S]*?\});/);
+          if (matchData) {
+            try {
+              window.TEAM_DATA = JSON.parse(matchData[1]);
+            } catch(e) {}
+          }
+        })
+        .catch(()=>{});
+    }, 10000);
     </script></body></html>';
 }
 
@@ -299,17 +333,8 @@ function match_line(array $m, array $teams): string
     $isLive = !empty($m['is_live']);
     $isWo   = !empty($m['wo_side']);
 
-    $homeWoTag = '';
-    $awayWoTag = '';
-    if ($isWo) {
-        if ($m['wo_side'] === 'home') {
-            $homeWoTag = ' <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>';
-            $awayWoTag = ' <span class="badge-wo win" title="Menang WO">Menang WO</span>';
-        } else {
-            $homeWoTag = ' <span class="badge-wo win" title="Menang WO">Menang WO</span>';
-            $awayWoTag = ' <span class="badge-wo loss" title="Kalah WO">Kalah WO</span>';
-        }
-    }
+    $homeWoTag = ($isWo && $m['wo_side'] === 'home') ? ' <span class="badge-wo" title="WO">WO</span>' : '';
+    $awayWoTag = ($isWo && $m['wo_side'] === 'away') ? ' <span class="badge-wo" title="WO">WO</span>' : '';
 
     $homeName = $home ? h($home['name']) . $homeWoTag : '<em class="tbd">' . h(slot_label($m, 'home')) . '</em>';
     $awayName = $away ? h($away['name']) . $awayWoTag : '<em class="tbd">' . h(slot_label($m, 'away')) . '</em>';
@@ -347,14 +372,8 @@ function bracket_card(array $m, array $teams): string
         $team = $teams[(int) $m[$side . '_id']] ?? null;
         $isWin = $team && $win === (int) $team['id'];
         $isWoLoss = $isWo && $m['wo_side'] === $side;
-        $isWoWin  = $isWo && $m['wo_side'] !== $side;
 
-        $woTag = '';
-        if ($isWoLoss) {
-            $woTag = ' <span class="badge-wo loss">Kalah WO</span>';
-        } elseif ($isWoWin) {
-            $woTag = ' <span class="badge-wo win">Menang WO</span>';
-        }
+        $woTag = $isWoLoss ? ' <span class="badge-wo" title="WO">WO</span>' : '';
 
         $out .= '<div class="b-row' . ($isWin ? ' win' : '') . ($isWoLoss ? ' wo-loss' : '') . '">';
         $out .= logo_html($team, 'logo sm');

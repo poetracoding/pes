@@ -76,7 +76,7 @@ page_header('Pertandingan', 'pertandingan');
   <a class="chip <?= $s === 'done' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'done')) ?>">Sudah main</a>
   <a class="chip <?= $s === 'todo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'todo')) ?>">Belum main</a>
   <?php if ($woCount > 0): ?>
-    <a class="chip chip-wo <?= $s === 'wo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'wo')) ?>">⚠️ Status WO (<?= $woCount ?>)</a>
+    <a class="chip chip-wo <?= $s === 'wo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'wo')) ?>">⚠️ WO (<?= $woCount ?>)</a>
   <?php endif; ?>
 </div>
 
