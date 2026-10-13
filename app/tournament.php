@@ -341,15 +341,19 @@ function save_match_score(
 
     $woSide = in_array($woSide, ['home', 'away'], true) ? $woSide : '';
 
-    [$hs, $as, $hp, $ap] = array_map('trim', [$hs, $as, $hp, $ap]);
-
-    // Jika WO dipilih tapi skor belum diisi, otomatis berikan skor 3-0 / 0-3 standar
-    if ($woSide === 'home' && $hs === '' && $as === '') {
+    // Jika WO dipilih (home/away), pastikan skor otomatis selalu sesuai tanpa peduli skor lama di form:
+    // Home kalah WO: Home 0 - 3 Away
+    // Away kalah WO: Home 3 - 0 Away
+    if ($woSide === 'home') {
         $hs = '0';
         $as = '3';
-    } elseif ($woSide === 'away' && $hs === '' && $as === '') {
+        $hp = '';
+        $ap = '';
+    } elseif ($woSide === 'away') {
         $hs = '3';
         $as = '0';
+        $hp = '';
+        $ap = '';
     }
 
     foreach ([$hs, $as, $hp, $ap] as $v) {

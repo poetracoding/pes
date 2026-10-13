@@ -121,7 +121,7 @@ page_header('Input Skor', 'admin-skor');
                    value="<?= $played ? (int) $m['away_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
           </div>
           <?php if ($ready): ?>
-            <select name="wo" class="wo-select <?= $woSide ? 'is-wo' : '' ?>" <?= $ready ? '' : 'disabled' ?> title="Status WO">
+            <select name="wo" class="wo-select <?= $woSide ? 'is-wo' : '' ?>" <?= $ready ? '' : 'disabled' ?> title="Status WO" onchange="handleWoChange(this)">
               <option value="" <?= $woSide === '' ? 'selected' : '' ?>>Normal</option>
               <option value="home" <?= $woSide === 'home' ? 'selected' : '' ?>>Home Kalah WO (0-3)</option>
               <option value="away" <?= $woSide === 'away' ? 'selected' : '' ?>>Away Kalah WO (3-0)</option>
@@ -165,4 +165,36 @@ page_header('Input Skor', 'admin-skor');
     <?php endforeach; ?>
   </section>
 <?php endforeach; ?>
+<script>
+function handleWoChange(sel) {
+  const form = sel.closest('form');
+  const hs = form.querySelector('input[name="hs"]');
+  const as = form.querySelector('input[name="as"]');
+  const hp = form.querySelector('input[name="hp"]');
+  const ap = form.querySelector('input[name="ap"]');
+
+  if (sel.value === 'home') {
+    hs.value = '0';
+    as.value = '3';
+    if (hp) hp.value = '';
+    if (ap) ap.value = '';
+    sel.classList.add('is-wo');
+    form.classList.add('is-wo');
+  } else if (sel.value === 'away') {
+    hs.value = '3';
+    as.value = '0';
+    if (hp) hp.value = '';
+    if (ap) ap.value = '';
+    sel.classList.add('is-wo');
+    form.classList.add('is-wo');
+  } else {
+    sel.classList.remove('is-wo');
+    form.classList.remove('is-wo');
+    if ((hs.value === '0' && as.value === '3') || (hs.value === '3' && as.value === '0')) {
+      hs.value = '';
+      as.value = '';
+    }
+  }
+}
+</script>
 <?php page_footer();
