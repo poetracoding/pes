@@ -114,6 +114,7 @@ input[type=file] { padding: 7px; }
 
 /* ---------- klasemen ---------- */
 .gcard h3 { display: flex; justify-content: space-between; align-items: baseline; }
+.gcard.has-live { border-color: rgba(239, 68, 68, .5); box-shadow: 0 0 14px rgba(239, 68, 68, .18); }
 .gcard h3 small { color: var(--muted); font-weight: 500; }
 .tbl { width: 100%; border-collapse: collapse; }
 .tbl th, .tbl td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -125,6 +126,9 @@ input[type=file] { padding: 7px; }
 .tbl td.gd { font-variant-numeric: tabular-nums; }
 .tbl tr.q td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .tbl tr.q td.pos { color: var(--accent); }
+.tbl tr.live { background: rgba(239, 68, 68, .08); }
+.tbl tr.live td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+.tbl tr.live td.pos { color: #ef4444; }
 .tbl tr.empty td { color: var(--muted); }
 .tm { display: flex; align-items: center; gap: 10px; min-width: 150px; }
 .tm .t { line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
@@ -160,6 +164,25 @@ input[type=file] { padding: 7px; }
   border-radius: 99px;
   text-transform: uppercase;
   line-height: 1.2;
+}
+.badge-live-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, .18);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, .45);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  padding: 1px 5px;
+  border-radius: 99px;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.badge-live-mini .dot-live {
+  width: 5px;
+  height: 5px;
 }
 .dot-live {
   display: inline-block;

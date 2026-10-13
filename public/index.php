@@ -6,6 +6,11 @@ $teamCount = (int) db()->query('SELECT COUNT(*) FROM teams')->fetchColumn();
 $liveCount = (int) db()->query('SELECT COUNT(*) FROM matches WHERE is_live = 1')->fetchColumn();
 $champ     = champion();
 
+$liveTeamIds   = db()->query("SELECT home_id FROM matches WHERE is_live = 1 UNION SELECT away_id FROM matches WHERE is_live = 1")->fetchAll(PDO::FETCH_COLUMN);
+$liveTeamMap   = array_flip(array_map('intval', array_filter($liveTeamIds)));
+$liveGroupList = db()->query("SELECT DISTINCT grp FROM matches WHERE is_live = 1 AND stage = 'G'")->fetchAll(PDO::FETCH_COLUMN);
+$liveGroupMap  = array_flip(array_filter($liveGroupList));
+
 page_header('Klasemen', 'klasemen');
 ?>
 <div class="head-row">
@@ -49,6 +54,7 @@ page_header('Klasemen', 'klasemen');
 <?php else: ?>
   <div class="legend small muted">
     <span><span class="dot"></span>Zona lolos (2 teratas)</span>
+    <span><span class="dot-live" style="margin-right:4px"></span>Sedang bertanding</span>
     <span>Main · M = Menang · S = Seri · K = Kalah · GM/GK = Gol Memasukkan/Kemasukan · SG = Selisih Gol</span>
   </div>
 
@@ -57,10 +63,17 @@ page_header('Klasemen', 'klasemen');
       $table = standings($g);
       [$done, $total] = group_progress($g);
       $complete = group_complete($g);
+      $isGrpLive = isset($liveGroupMap[$g]);
   ?>
-    <section class="card gcard">
+    <section class="card gcard<?= $isGrpLive ? ' has-live' : '' ?>">
       <h3>
-        <span>Grup <?= h($g) ?><?= $complete ? '<span class="badge">Selesai</span>' : '' ?></span>
+        <span>
+          Grup <?= h($g) ?>
+          <?= $complete ? '<span class="badge">Selesai</span>' : '' ?>
+          <?php if ($isGrpLive): ?>
+            <span class="badge-live-mini"><span class="dot-live"></span>LIVE</span>
+          <?php endif; ?>
+        </span>
         <small><?= $total ? "$done/$total laga" : 'Jadwal menunggu 4 tim' ?></small>
       </h3>
       <div class="tablewrap">
@@ -69,12 +82,22 @@ page_header('Klasemen', 'klasemen');
           <tr><th>#</th><th class="l">Tim</th><th>Main</th><th>M</th><th>S</th><th>K</th><th>GM</th><th>GK</th><th>SG</th><th>Poin</th></tr>
         </thead>
         <tbody>
-        <?php foreach ($table as $i => $r): ?>
-          <tr class="<?= $i < 2 ? 'q' : '' ?>">
+        <?php foreach ($table as $i => $r):
+            $isTeamLive = isset($liveTeamMap[(int) $r['id']]);
+        ?>
+          <tr class="<?= ($i < 2 ? 'q ' : '') . ($isTeamLive ? 'live ' : '') ?>">
             <td class="pos"><?= $i + 1 ?></td>
             <td class="l">
               <div class="tm"><?= logo_html($r) ?>
-                <div class="t"><b><?= h($r['name']) ?></b><small><?= h($r['player']) ?></small></div>
+                <div class="t">
+                  <b>
+                    <?= h($r['name']) ?>
+                    <?php if ($isTeamLive): ?>
+                      <span class="badge-live-mini" title="Sedang bertanding"><span class="dot-live"></span>LIVE</span>
+                    <?php endif; ?>
+                  </b>
+                  <small><?= h($r['player']) ?></small>
+                </div>
               </div>
             </td>
             <td><?= $r['p'] ?></td><td><?= $r['w'] ?></td><td><?= $r['d'] ?></td><td><?= $r['l'] ?></td>
