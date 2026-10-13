@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/../app/web.php';
 
+$champ = champion();
 $teams = teams_all();
 $ko    = [];
 foreach (matches_all() as $m) {
