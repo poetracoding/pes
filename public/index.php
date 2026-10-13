@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/../app/web.php';
 
 $teamCount = (int) db()->query('SELECT COUNT(*) FROM teams')->fetchColumn();
+$liveCount = (int) db()->query('SELECT COUNT(*) FROM matches WHERE is_live = 1')->fetchColumn();
 $champ     = champion();
 
 page_header('Klasemen', 'klasemen');
@@ -14,6 +15,19 @@ page_header('Klasemen', 'klasemen');
   </div>
   <?= monitor_link() ?>
 </div>
+
+<?php if ($liveCount > 0): ?>
+  <div class="card live-banner">
+    <div class="live-banner-info">
+      <span class="badge-live"><span class="dot-live"></span>LIVE</span>
+      <span><b><?= $liveCount ?> pertandingan</b> sedang berlangsung saat ini!</span>
+    </div>
+    <div class="actions">
+      <a class="btn small" href="<?= h(BASE . '/pertandingan.php?s=live') ?>">Pantau Pertandingan</a>
+      <a class="btn ghost small" href="<?= h(BASE . '/bagan.php') ?>">Lihat Bagan</a>
+    </div>
+  </div>
+<?php endif; ?>
 
 <?php if ($champ): ?>
   <div class="champ">

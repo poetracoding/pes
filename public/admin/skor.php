@@ -3,30 +3,44 @@ declare(strict_types=1);
 require __DIR__ . '/../../app/web.php';
 require_admin();
 
-// Filter: f = A..H | KO | all
+// Filter: f = A..H | KO | live | all
 $f = (string) ($_GET['f'] ?? ($_POST['f'] ?? 'A'));
-if (!in_array($f, array_merge(['all', 'KO'], GROUPS), true)) {
+if (!in_array($f, array_merge(['all', 'KO', 'live'], GROUPS), true)) {
     $f = 'A';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
-    $id  = (int) ($_POST['id'] ?? 0);
+    $id = (int) ($_POST['id'] ?? 0);
+
+    if (isset($_POST['toggle_live'])) {
+        $curr = (int) db()->query("SELECT is_live FROM matches WHERE id = $id")->fetchColumn();
+        $newLive = $curr ? 0 : 1;
+        set_match_live($id, $newLive);
+        flash($newLive ? 'Pertandingan ditandai SEDANG BERTANDING (Live).' : 'Status sedang bertanding dinonaktifkan.', 'ok');
+        redirect('/admin/skor.php?f=' . urlencode($f) . '#m' . $id);
+    }
+
+    $isLive = isset($_POST['is_live']) ? (int) $_POST['is_live'] : null;
     $err = save_match_score(
         $id,
         (string) ($_POST['hs'] ?? ''),
         (string) ($_POST['as'] ?? ''),
         (string) ($_POST['hp'] ?? ''),
-        (string) ($_POST['ap'] ?? '')
+        (string) ($_POST['ap'] ?? ''),
+        $isLive
     );
     flash($err ?? 'Skor disimpan.', $err ? 'err' : 'ok');
     redirect('/admin/skor.php?f=' . urlencode($f) . '#m' . $id);
 }
 
-$teams   = teams_all();
-$matches = matches_all();
-$sections = [];
+$teams     = teams_all();
+$matches   = matches_all();
+$liveTotal = (int) db()->query('SELECT COUNT(*) FROM matches WHERE is_live = 1')->fetchColumn();
+$sections  = [];
+
 foreach ($matches as $m) {
+    if ($f === 'live' && empty($m['is_live'])) continue;
     if ($f === 'KO' && $m['stage'] === 'G') continue;
     if (in_array($f, GROUPS, true) && !($m['stage'] === 'G' && $m['grp'] === $f)) continue;
 
@@ -39,11 +53,12 @@ page_header('Input Skor', 'admin-skor');
 <div class="head-row">
   <div>
     <h1>Input Skor</h1>
-    <div class="muted small">Isi skor lalu klik Simpan. Kosongkan kedua kolom skor lalu Simpan untuk menghapus hasil. Babak knockout yang seri wajib diisi skor penalti.</div>
+    <div class="muted small">Isi skor lalu klik Simpan. Kosongkan kedua kolom skor lalu Simpan untuk menghapus hasil. Klik <b>Mulai</b> untuk menandai pertandingan sedang bertanding (tanda merah).</div>
   </div>
 </div>
 
 <div class="filters">
+  <a class="chip chip-live <?= $f === 'live' ? 'on' : '' ?>" href="?f=live">🔴 Sedang Main (<?= $liveTotal ?>)</a>
   <?php foreach (GROUPS as $g): ?>
     <a class="chip <?= $f === $g ? 'on' : '' ?>" href="?f=<?= $g ?>">Grup <?= $g ?></a>
   <?php endforeach; ?>
@@ -57,7 +72,7 @@ page_header('Input Skor', 'admin-skor');
 
 <?php if (!$sections): ?>
   <div class="card empty-state muted">
-    Belum ada jadwal untuk grup ini. Jadwal dibuat otomatis setelah grup berisi 4 tim — <a href="<?= h(BASE . '/admin/tim.php') ?>">tambahkan tim</a>.
+    <?= $f === 'live' ? 'Saat ini belum ada pertandingan yang ditandai sedang bertanding.' : 'Belum ada jadwal untuk grup ini. Jadwal dibuat otomatis setelah grup berisi 4 tim — <a href="' . h(BASE . '/admin/tim.php') . '">tambahkan tim</a>.' ?>
   </div>
 <?php endif; ?>
 
@@ -70,8 +85,9 @@ page_header('Input Skor', 'admin-skor');
         $ready = $home && $away;
         $isKo  = $m['stage'] !== 'G';
         $played = match_played($m);
+        $isLive = !empty($m['is_live']);
     ?>
-      <form method="post" class="score-row" id="m<?= (int) $m['id'] ?>">
+      <form method="post" class="score-row<?= $isLive ? ' is-live' : '' ?>" id="m<?= (int) $m['id'] ?>">
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
         <input type="hidden" name="f" value="<?= h($f) ?>">
@@ -81,12 +97,17 @@ page_header('Input Skor', 'admin-skor');
           <?= logo_html($home, 'logo sm') ?>
         </div>
 
-        <div class="inputs">
-          <input type="number" name="hs" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($home ? $home['name'] . ' (' . $home['player'] . ')' : 'tuan rumah') ?>"
-                 value="<?= $played ? (int) $m['home_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
-          <span class="muted">–</span>
-          <input type="number" name="as" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($away ? $away['name'] . ' (' . $away['player'] . ')' : 'tamu') ?>"
-                 value="<?= $played ? (int) $m['away_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
+        <div class="inputs-wrap">
+          <div class="inputs">
+            <input type="number" name="hs" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($home ? $home['name'] . ' (' . $home['player'] . ')' : 'tuan rumah') ?>"
+                   value="<?= $played ? (int) $m['home_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
+            <span class="muted">–</span>
+            <input type="number" name="as" min="0" max="99" inputmode="numeric" aria-label="Skor <?= h($away ? $away['name'] . ' (' . $away['player'] . ')' : 'tamu') ?>"
+                   value="<?= $played ? (int) $m['away_score'] : '' ?>" <?= $ready ? '' : 'disabled' ?>>
+          </div>
+          <?php if ($isLive): ?>
+            <div class="live-pill-inline"><span class="badge-live"><span class="dot-live"></span>LIVE</span></div>
+          <?php endif; ?>
         </div>
 
         <div class="t">
@@ -96,6 +117,11 @@ page_header('Input Skor', 'admin-skor');
 
         <div class="save-cell">
           <button class="small<?= $played ? ' ghost' : '' ?>" <?= $ready ? '' : 'disabled' ?>><?= $played ? 'Ubah' : 'Simpan' ?></button>
+          <?php if ($ready): ?>
+            <button type="submit" name="toggle_live" value="1" class="btn small btn-live-toggle <?= $isLive ? 'active' : 'ghost' ?>" title="<?= $isLive ? 'Matikan tanda sedang bertanding' : 'Tandai sedang bertanding' ?>">
+              <?= $isLive ? '🔴 LIVE' : 'Mulai' ?>
+            </button>
+          <?php endif; ?>
         </div>
 
         <?php if ($isKo && $ready): ?>

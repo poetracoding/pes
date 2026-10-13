@@ -314,7 +314,7 @@ function champion(): ?array
  * Return pesan error, atau null jika berhasil.
  * Skor dikirim sebagai string mentah dari form dan divalidasi di sini.
  */
-function save_match_score(int $id, string $hs, string $as, string $hp = '', string $ap = ''): ?string
+function save_match_score(int $id, string $hs, string $as, string $hp = '', string $ap = '', ?int $isLive = null): ?string
 {
     $pdo = db();
     $st  = $pdo->prepare('SELECT * FROM matches WHERE id = ?');
@@ -356,11 +356,25 @@ function save_match_score(int $id, string $hs, string $as, string $hp = '', stri
         $vals = [$hs, $as, $pens[0], $pens[1]];
     }
 
-    $pdo->prepare('UPDATE matches SET home_score = ?, away_score = ?, home_pen = ?, away_pen = ? WHERE id = ?')
-        ->execute([...$vals, $id]);
+    if ($isLive !== null) {
+        $liveVal = $isLive ? 1 : 0;
+    } else {
+        // Jika skor diisi (laga selesai), matikan status live otomatis
+        $liveVal = ($vals[0] !== null) ? 0 : (int) ($m['is_live'] ?? 0);
+    }
+
+    $pdo->prepare('UPDATE matches SET home_score = ?, away_score = ?, home_pen = ?, away_pen = ?, is_live = ? WHERE id = ?')
+        ->execute([...$vals, $liveVal, $id]);
 
     sync_knockout();
     return null;
+}
+
+/** Ubah status sedang bertanding (1) atau tidak (0). */
+function set_match_live(int $id, int $live): bool
+{
+    $st = db()->prepare('UPDATE matches SET is_live = ? WHERE id = ?');
+    return $st->execute([$live ? 1 : 0, $id]);
 }
 
 /* ----------------------------------------------------------- data contoh */
@@ -411,7 +425,7 @@ function reset_all(): void
 /** Hapus semua skor (tim dan jadwal tetap). */
 function reset_scores(): void
 {
-    db()->exec('UPDATE matches SET home_score = NULL, away_score = NULL, home_pen = NULL, away_pen = NULL');
+    db()->exec('UPDATE matches SET home_score = NULL, away_score = NULL, home_pen = NULL, away_pen = NULL, is_live = 0');
     sync_knockout();
 }
 

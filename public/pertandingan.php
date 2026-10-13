@@ -5,16 +5,17 @@ require __DIR__ . '/../app/web.php';
 $teams   = teams_all();
 $matches = matches_all();
 
-// Filter: f = all | A..H | KO ; s = all | done | todo
+// Filter: f = all | A..H | KO ; s = all | live | done | todo
 $f = (string) ($_GET['f'] ?? 'all');
 $s = (string) ($_GET['s'] ?? 'all');
 if (!in_array($f, array_merge(['all', 'KO'], GROUPS), true)) {
     $f = 'all';
 }
-if (!in_array($s, ['all', 'done', 'todo'], true)) {
+if (!in_array($s, ['all', 'live', 'done', 'todo'], true)) {
     $s = 'all';
 }
 
+$liveCount = (int) db()->query('SELECT COUNT(*) FROM matches WHERE is_live = 1')->fetchColumn();
 $sections = [];
 $played = 0;
 foreach ($matches as $m) {
@@ -23,8 +24,9 @@ foreach ($matches as $m) {
 
     if ($f === 'KO' && $m['stage'] === 'G') continue;
     if ($f !== 'all' && $f !== 'KO' && !($m['stage'] === 'G' && $m['grp'] === $f)) continue;
+    if ($s === 'live' && empty($m['is_live'])) continue;
     if ($s === 'done' && !$isPlayed) continue;
-    if ($s === 'todo' && $isPlayed) continue;
+    if ($s === 'todo' && ($isPlayed || !empty($m['is_live']))) continue;
 
     $key = $m['stage'] === 'G'
         ? 'Grup ' . $m['grp'] . ' · Matchday ' . $m['round']
@@ -49,7 +51,12 @@ page_header('Pertandingan', 'pertandingan');
 <div class="head-row">
   <div>
     <h1>Monitor Pertandingan</h1>
-    <div class="muted small"><?= $played ?> dari <?= $total ?> laga selesai · <?= $goals ?> gol tercipta</div>
+    <div class="muted small">
+      <?= $played ?> dari <?= $total ?> laga selesai · <?= $goals ?> gol tercipta
+      <?php if ($liveCount > 0): ?>
+        · <span class="badge-live" style="margin-left:6px"><span class="dot-live"></span><?= $liveCount ?> sedang main</span>
+      <?php endif; ?>
+    </div>
   </div>
   <?= monitor_link() ?>
 </div>
@@ -62,9 +69,10 @@ page_header('Pertandingan', 'pertandingan');
   <a class="chip <?= $f === 'KO' ? 'on' : '' ?>" href="<?= h(filter_url('KO', $s)) ?>">Knockout</a>
 </div>
 <div class="filters" style="margin-bottom:16px">
-  <?php foreach (['all' => 'Semua status', 'done' => 'Sudah main', 'todo' => 'Belum main'] as $k => $label): ?>
-    <a class="chip <?= $s === $k ? 'on' : '' ?>" href="<?= h(filter_url($f, $k)) ?>"><?= $label ?></a>
-  <?php endforeach; ?>
+  <a class="chip <?= $s === 'all' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'all')) ?>">Semua status</a>
+  <a class="chip chip-live <?= $s === 'live' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'live')) ?>">🔴 Sedang main <?= $liveCount > 0 ? "($liveCount)" : '' ?></a>
+  <a class="chip <?= $s === 'done' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'done')) ?>">Sudah main</a>
+  <a class="chip <?= $s === 'todo' ? 'on' : '' ?>" href="<?= h(filter_url($f, 'todo')) ?>">Belum main</a>
 </div>
 
 <?php if (!$sections): ?>

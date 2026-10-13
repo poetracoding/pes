@@ -58,6 +58,7 @@ function db(): PDO
             away_score INTEGER,
             home_pen   INTEGER,                    -- skor adu penalti (knockout seri)
             away_pen   INTEGER,
+            is_live    INTEGER NOT NULL DEFAULT 0, -- 1 = sedang bertanding
             UNIQUE (stage, grp, slot)
         );
 
@@ -66,6 +67,15 @@ function db(): PDO
             ts INTEGER NOT NULL
         );
     ");
+
+    // Migrasi otomatis kolom is_live bila database lama belum memilikinya
+    try {
+        $cols = $pdo->query("PRAGMA table_info(matches)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('is_live', $cols, true)) {
+            $pdo->exec("ALTER TABLE matches ADD COLUMN is_live INTEGER NOT NULL DEFAULT 0");
+        }
+    } catch (Throwable) {
+    }
 
     return $pdo;
 }

@@ -9,14 +9,26 @@ foreach (matches_all() as $m) {
         $ko[$m['stage']][(int) $m['slot']] = $m;
     }
 }
-$champ = champion();
+$liveKo = 0;
+foreach ($ko as $stgMatches) {
+    foreach ($stgMatches as $m) {
+        if (!empty($m['is_live'])) {
+            $liveKo++;
+        }
+    }
+}
 
 page_header('Bagan', 'bagan');
 ?>
 <div class="head-row">
   <div>
     <h1>Bagan Knockout</h1>
-    <div class="muted small">Peserta terisi otomatis begitu grup selesai dan hasil laga dimasukkan. Angka kecil di samping skor = adu penalti.</div>
+    <div class="muted small">
+      Peserta terisi otomatis begitu grup selesai dan hasil laga dimasukkan. Angka kecil di samping skor = adu penalti.
+      <?php if ($liveKo > 0): ?>
+        · <span class="badge-live" style="margin-left:4px"><span class="dot-live"></span><?= $liveKo ?> laga sedang main</span>
+      <?php endif; ?>
+    </div>
   </div>
   <?= monitor_link() ?>
 </div>

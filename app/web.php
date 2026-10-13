@@ -233,10 +233,11 @@ function pen_note(array $m): string
 /** Satu baris pertandingan (halaman monitor pertandingan). */
 function match_line(array $m, array $teams): string
 {
-    $home = $teams[(int) $m['home_id']] ?? null;
-    $away = $teams[(int) $m['away_id']] ?? null;
-    $done = match_played($m);
-    $win  = match_winner($m);
+    $home   = $teams[(int) $m['home_id']] ?? null;
+    $away   = $teams[(int) $m['away_id']] ?? null;
+    $done   = match_played($m);
+    $win    = match_winner($m);
+    $isLive = !empty($m['is_live']);
 
     $homeName = $home ? h($home['name']) : '<em class="tbd">' . h(slot_label($m, 'home')) . '</em>';
     $awayName = $away ? h($away['name']) : '<em class="tbd">' . h(slot_label($m, 'away')) . '</em>';
@@ -248,10 +249,11 @@ function match_line(array $m, array $teams): string
         : '<span class="vs">vs</span>';
 
     $pen = pen_note($m);
+    $liveBadge = $isLive ? '<span class="badge-live mline-live"><span class="dot-live"></span>LIVE</span>' : '';
 
-    return '<div class="mline ' . ($done ? 'done' : 'todo') . '">'
+    return '<div class="mline ' . ($done ? 'done' : 'todo') . ($isLive ? ' live' : '') . '">'
         . '<div class="side home' . ($win && $home && $win === (int) $home['id'] ? ' win' : '') . '"><span class="nm">' . $homeName . $homeSub . '</span>' . logo_html($home) . '</div>'
-        . '<div class="sc">' . $score . ($pen ? '<small>' . h($pen) . '</small>' : '') . '</div>'
+        . '<div class="sc">' . $liveBadge . $score . ($pen ? '<small>' . h($pen) . '</small>' : '') . '</div>'
         . '<div class="side away' . ($win && $away && $win === (int) $away['id'] ? ' win' : '') . '">' . logo_html($away) . '<span class="nm">' . $awayName . $awaySub . '</span></div>'
         . '</div>';
 }
@@ -259,9 +261,14 @@ function match_line(array $m, array $teams): string
 /** Kartu pertandingan pada bagan knockout. */
 function bracket_card(array $m, array $teams): string
 {
-    $win  = match_winner($m);
-    $done = match_played($m);
-    $out  = '<div class="b-card' . ($done ? ' done' : '') . '">';
+    $win    = match_winner($m);
+    $done   = match_played($m);
+    $isLive = !empty($m['is_live']);
+    $out    = '<div class="b-card' . ($done ? ' done' : '') . ($isLive ? ' live' : '') . '">';
+
+    if ($isLive) {
+        $out .= '<div class="b-live-bar"><span class="dot-live"></span>SEDANG BERTANDING</div>';
+    }
 
     foreach (['home', 'away'] as $side) {
         $team = $teams[(int) $m[$side . '_id']] ?? null;
