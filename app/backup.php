@@ -418,8 +418,36 @@ function import_from_sqlite_file(string $sqlitePath, bool $keepAdmin): array
         $pdo->exec('DELETE FROM matches');
         $pdo->exec('DELETE FROM teams');
 
-        $pdo->exec('INSERT INTO teams SELECT * FROM src_backup.teams');
-        $pdo->exec('INSERT INTO matches SELECT * FROM src_backup.matches');
+        // Pemetaan kolom dinamis untuk teams (kompatibel lintas versi backup)
+        $srcTeamCols = $pdo->query('PRAGMA src_backup.table_info(teams)')->fetchAll(PDO::FETCH_COLUMN, 1);
+        $teamSelect = [
+            in_array('id', $srcTeamCols, true) ? 'id' : 'NULL AS id',
+            in_array('player', $srcTeamCols, true) ? 'player' : "'' AS player",
+            in_array('name', $srcTeamCols, true) ? 'name' : "'' AS name",
+            in_array('logo', $srcTeamCols, true) ? 'logo' : 'NULL AS logo',
+            in_array('grp', $srcTeamCols, true) ? 'grp' : "'A' AS grp",
+            in_array('created_at', $srcTeamCols, true) ? 'created_at' : "datetime('now') AS created_at",
+        ];
+        $pdo->exec('INSERT INTO teams (id, player, name, logo, grp, created_at) SELECT ' . implode(', ', $teamSelect) . ' FROM src_backup.teams');
+
+        // Pemetaan kolom dinamis untuk matches (kompatibel dgn backup 11, 12, atau 13 kolom)
+        $srcMatchCols = $pdo->query('PRAGMA src_backup.table_info(matches)')->fetchAll(PDO::FETCH_COLUMN, 1);
+        $matchSelect = [
+            in_array('id', $srcMatchCols, true) ? 'id' : 'NULL AS id',
+            in_array('stage', $srcMatchCols, true) ? 'stage' : "'G' AS stage",
+            in_array('grp', $srcMatchCols, true) ? 'grp' : "'' AS grp",
+            in_array('round', $srcMatchCols, true) ? 'round' : '1 AS round',
+            in_array('slot', $srcMatchCols, true) ? 'slot' : '1 AS slot',
+            in_array('home_id', $srcMatchCols, true) ? 'home_id' : 'NULL AS home_id',
+            in_array('away_id', $srcMatchCols, true) ? 'away_id' : 'NULL AS away_id',
+            in_array('home_score', $srcMatchCols, true) ? 'home_score' : 'NULL AS home_score',
+            in_array('away_score', $srcMatchCols, true) ? 'away_score' : 'NULL AS away_score',
+            in_array('home_pen', $srcMatchCols, true) ? 'home_pen' : 'NULL AS home_pen',
+            in_array('away_pen', $srcMatchCols, true) ? 'away_pen' : 'NULL AS away_pen',
+            in_array('is_live', $srcMatchCols, true) ? 'is_live' : '0 AS is_live',
+            in_array('wo_side', $srcMatchCols, true) ? 'wo_side' : "'' AS wo_side",
+        ];
+        $pdo->exec('INSERT INTO matches (id, stage, grp, round, slot, home_id, away_id, home_score, away_score, home_pen, away_pen, is_live, wo_side) SELECT ' . implode(', ', $matchSelect) . ' FROM src_backup.matches');
 
         // Jika tidak mempertahankan admin dan di backup ada tabel admins, salin juga admin
         if (!$keepAdmin) {
@@ -428,7 +456,13 @@ function import_from_sqlite_file(string $sqlitePath, bool $keepAdmin): array
                 $srcAdminCount = (int) $pdo->query('SELECT COUNT(*) FROM src_backup.admins')->fetchColumn();
                 if ($srcAdminCount > 0) {
                     $pdo->exec('DELETE FROM admins');
-                    $pdo->exec('INSERT INTO admins SELECT * FROM src_backup.admins');
+                    $srcAdminCols = $pdo->query('PRAGMA src_backup.table_info(admins)')->fetchAll(PDO::FETCH_COLUMN, 1);
+                    $adminSelect = [
+                        in_array('id', $srcAdminCols, true) ? 'id' : 'NULL AS id',
+                        in_array('username', $srcAdminCols, true) ? 'username' : "'admin' AS username",
+                        in_array('password_hash', $srcAdminCols, true) ? 'password_hash' : "'' AS password_hash",
+                    ];
+                    $pdo->exec('INSERT INTO admins (id, username, password_hash) SELECT ' . implode(', ', $adminSelect) . ' FROM src_backup.admins');
                 }
             }
         } elseif (!empty($currentAdmins)) {
