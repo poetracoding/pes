@@ -124,6 +124,7 @@ function page_header(string $title, string $active = ''): void
 
     echo '<!doctype html><html lang="id"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<script>try{const t=localStorage.getItem("pes_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");else document.documentElement.setAttribute("data-theme","dark");}catch(e){}</script>';
     if ($monitor) {
         echo '<noscript><meta http-equiv="refresh" content="10"></noscript>';
     }
@@ -140,6 +141,7 @@ function page_header(string $title, string $active = ''): void
         unset($qs['monitor']);
         $exit = $self . ($qs ? '?' . http_build_query($qs) : '');
         echo '<span class="muted small">Auto-refresh tiap 10 detik</span>';
+        echo '<button type="button" class="btn ghost small theme-toggle-btn" onclick="toggleTheme()" title="Ubah Mode Gelap / Terang"><span class="theme-icon">🌙</span></button>';
         echo '<a class="btn ghost small" href="' . h($exit) . '">Keluar mode layar</a>';
     } else {
         echo '<nav>';
@@ -147,6 +149,7 @@ function page_header(string $title, string $active = ''): void
             echo '<a href="' . h(BASE . $href) . '"' . ($active === $key ? ' class="on"' : '') . '>' . h($label) . '</a>';
         }
         echo '</nav><div class="auth">';
+        echo '<button type="button" class="btn ghost small theme-toggle-btn" onclick="toggleTheme()" title="Ubah Mode Gelap / Terang"><span class="theme-icon">🌙</span></button>';
         if (is_admin()) {
             echo '<a class="btn small" href="' . h(BASE . '/admin/index.php') . '">Panel Admin</a>';
             echo '<form method="post" action="' . h(BASE . '/logout.php') . '">' . csrf_field() . '<button class="btn ghost small">Keluar</button></form>';
@@ -236,6 +239,24 @@ function page_footer(): void
         })
         .catch(()=>{});
     }, 10000);
+    // Logika tema gelap / terang
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      try { localStorage.setItem("pes_theme", theme); } catch(e) {}
+      const icon = theme === "light" ? "☀️" : "🌙";
+      document.querySelectorAll(".theme-icon").forEach(el => { el.textContent = icon; });
+      document.querySelectorAll(".theme-toggle-btn").forEach(btn => {
+        btn.setAttribute("title", theme === "light" ? "Ganti ke Mode Gelap" : "Ganti ke Mode Terang");
+      });
+    }
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+      applyTheme(current === "light" ? "dark" : "light");
+    }
+    (function() {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      applyTheme(current);
+    })();
     </script></body></html>';
 }
 
@@ -245,6 +266,7 @@ function monitor_link(): string
     $qs = $_GET;
     $qs['monitor'] = 1;
     return '<div class="head-actions">'
+        . '<button type="button" class="btn ghost small theme-toggle-btn" onclick="toggleTheme()" title="Ubah Mode Gelap / Terang"><span class="theme-icon">🌙</span> Mode</button>'
         . '<a class="btn ghost small" href="?' . h(http_build_query($qs)) . '">Mode layar</a>'
         . '<button type="button" class="btn ghost small fs-toggle-btn" onclick="toggleFullScreen()" title="Layar Penuh (Shortcut: F)">⛶ Layar Penuh</button>'
         . '</div>';
