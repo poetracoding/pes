@@ -129,7 +129,7 @@ function page_header(string $title, string $active = ''): void
     }
     echo '<title>' . h($title) . ' · ' . h(APP_NAME) . '</title>';
     echo '<link rel="stylesheet" href="' . h($css) . '"></head>';
-    echo '<body class="' . ($monitor ? 'monitor' : '') . '">';
+    echo '<body class="' . trim(($monitor ? 'monitor ' : '') . ($active ? 'page-' . h($active) : '')) . '">';
 
     echo '<header class="top"><div class="wrap bar">';
     echo '<a class="brand" href="' . h(BASE . '/index.php') . '"><span class="brand-mark">PES</span>' . h(APP_NAME) . '</a>';
